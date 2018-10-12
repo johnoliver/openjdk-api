@@ -314,6 +314,11 @@ function getOldStyleFileInfo(name) {
     heap_size = "large";
   }
 
+  let heap_size = "normal";
+  if (name.indexOf("LinuxLH") >= 0) {
+    heap_size = "large";
+  }
+
   return {
     version: matched[1].toLowerCase(),
     openjdk_impl: openjdk_impl.toLowerCase(),
