@@ -77,7 +77,7 @@ function fixPrereleaseTagOnOldRepoData(data, isRelease) {
 }
 
 function sendData(data, res) {
-  if (data === undefined || data.length === 0) {
+  if (data === undefined || data === null || data.length === 0) {
     res.status(404);
     res.send('Not found');
   } else {
@@ -111,7 +111,7 @@ function redirectToBinary(data, res) {
 }
 
 
-function sanityCheckParams(res, ROUTErequestType, ROUTEbuildtype, ROUTEversion, ROUTEopenjdkImpl, ROUTEos, ROUTEarch, ROUTErelease, ROUTEtype, ROUTEheapSize) {
+function sanityCheckParams(res, ROUTErequestType, ROUTEbuildtype, ROUTEversion, ROUTEopenjdkImpl, ROUTEos, ROUTEarch, ROUTErelease, ROUTEtype, ROUTEheapSize, ROUTEpage) {
   let errorMsg = undefined;
 
   const alNum = /[a-zA-Z0-9]+/;
@@ -140,6 +140,10 @@ function sanityCheckParams(res, ROUTErequestType, ROUTEbuildtype, ROUTEversion, 
     errorMsg = 'Unknown architecture format';
   }
 
+  if (ROUTEpage !== undefined && ROUTEpage.match(/[0-9]+/) === null) {
+    errorMsg = 'Unknown page number format';
+  }
+
   if (ROUTErelease !== undefined && ROUTErelease.match(/[a-zA-Z0-9-]+/) === null) {
     errorMsg = 'Unknown release format';
   }
@@ -161,11 +165,29 @@ function sanityCheckParams(res, ROUTErequestType, ROUTEbuildtype, ROUTEversion, 
   }
 }
 
+function paginate(data, page) {
+  if (data.constructor === Array) {
+    const chunks = _.chain(data)
+      .chunk(4)
+      .value();
+
+    if (chunks.length > page) {
+      return chunks[page];
+    } else {
+      return null;
+    }
+  } else {
+    return data;
+  }
+
+}
+
 
 module.exports = function (req, res) {
   const ROUTErequestType = req.params.requestType;
   const ROUTEbuildtype = req.params.buildtype;
   const ROUTEversion = req.params.version;
+  const ROUTEpage = req.params.page;
 
   if (ROUTErequestType === undefined || ROUTEbuildtype === undefined || ROUTEversion === undefined) {
     res.status(404);
@@ -180,7 +202,7 @@ module.exports = function (req, res) {
   const ROUTEtype = req.query['type'];
   const ROUTEheapSize = req.query['heap_size'];
 
-  if (!sanityCheckParams(res, ROUTErequestType, ROUTEbuildtype, ROUTEversion, ROUTEopenjdkImpl, ROUTEos, ROUTEarch, ROUTErelease, ROUTEtype, ROUTEheapSize)) {
+  if (!sanityCheckParams(res, ROUTErequestType, ROUTEbuildtype, ROUTEversion, ROUTEopenjdkImpl, ROUTEos, ROUTEarch, ROUTErelease, ROUTEtype, ROUTEheapSize, ROUTEpage)) {
     return;
   }
 
@@ -204,6 +226,8 @@ module.exports = function (req, res) {
       data = filterRelease(data, ROUTErelease);
 
       data = data.value();
+
+      data = paginate(data, ROUTEpage);
 
       if (ROUTErequestType === 'info') {
         sendData(data, res);
@@ -281,6 +305,8 @@ function getOldStyleFileInfo(name) {
 
   if (os === "win") {
     os = 'windows';
+  } else if ( os === "linuxlh") {
+    os = 'linux';
   }
 
   let heap_size = "normal";

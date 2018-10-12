@@ -19,7 +19,8 @@ module.exports = function (app) {
 
 
 
-      '/v2/:requestType/:buildtype/:version'],
+      '/v2/:requestType/:buildtype/:version',
+      '/v2/:requestType/:buildtype/:version/:page'],
 
     // Examples:
     //      /info/releases/openjdk8
