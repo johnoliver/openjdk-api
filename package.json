@@ -15,6 +15,7 @@
   "main": "app/routes/index.js",
   "scripts": {
     "start": "nodemon --ignore cache/ server.js",
+    "startTest": "nodemon --ignore cache/ server.js",
     "lint": "eslint *.js app/routes/*.js",
     "test": "jest --coverage test/*.test.js && npm run lint",
     "test:regression": "jest --coverage test/regression/*.test.js"
