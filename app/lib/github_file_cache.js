@@ -87,6 +87,12 @@ class GitHubFileCache {
       .flatten()
       .values();
 
+
+    octokit.hook.error('request', async (error, options) => {
+      console.error("oktokit request error " + error.code + " " + error.request.url)
+      throw error
+    });
+
     if (disableCron !== true) {
       this.scheduleCacheRefresh();
     }
