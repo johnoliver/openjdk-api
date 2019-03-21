@@ -38,28 +38,14 @@
 // jdk8u162-b12_openj9-0.8.0
 //
 
-const _ = require('underscore');
 
-module.exports = function () {
+namespace Versions {
+  const _ = require('underscore');
 
-  //Regexes based on those in http://openjdk.java.net/jeps/223
-  // Technically the standard supports an arbitrary number of numbers, we will support 3 for now
-  const vnumRegex = '(?<major>[0-9]+)(\\.(?<minor>[0-9]+))?(\\.(?<security>[0-9]+))?';
-  const pre = '(?<pre>[a-zA-Z0-9]+)';
-  const build = '(?<build>[0-9]+)';
-  const opt = '(?<opt>[-a-zA-Z0-9\\.]+)';
-
-  const version223Regexs = [
-                          new RegExp(`(?<version>${vnumRegex}(\\-${pre})?\\+${build}(\\-${opt})?)`),
-                          new RegExp(`(?<version>${vnumRegex}\\-${pre}(\\-${opt})?)`),
-                          new RegExp(`(?<version>${vnumRegex}(\\+\\-${opt})?)`)
-  ];
-
-  const pre223regex = new RegExp('jdk(?<version>(?<major>[0-8]+)(u(?<update>[0-9]+))?(-b(?<build>[0-9]+))(_(?<opt>[-a-zA-Z0-9\\.]+))?)');
-
-  function or0(x) {
-    return x === undefined ? 0 : parseInt(x);
+  function or0(x): number {
+    return x === null || x === undefined ? 0 : parseInt(x);
   }
+
 
   function toInt(x) {
     return x === undefined ? undefined : parseInt(x);
@@ -71,60 +57,71 @@ module.exports = function () {
     }))
   }
 
-  function parse223VersionString(versionNumber) {
+  //Regexes based on those in http://openjdk.java.net/jeps/223
+  // Technically the standard supports an arbitrary number of numbers, we will support 3 for now
+  const vnumRegex = '(?<major>[0-9]+)(\\.(?<minor>[0-9]+))?(\\.(?<security>[0-9]+))?';
+  const pre = '(?<pre>[a-zA-Z0-9]+)';
+  const build = '(?<build>[0-9]+)';
+  const opt = '(?<opt>[-a-zA-Z0-9\\.]+)';
 
-    let matched = null;
+  const version223Regexs: RegExp[] = [
+    new RegExp(`(?<version>${vnumRegex}(\\-${pre})?\\+${build}(\\-${opt})?)`),
+    new RegExp(`(?<version>${vnumRegex}\\-${pre}(\\-${opt})?)`),
+    new RegExp(`(?<version>${vnumRegex}(\\+\\-${opt})?)`)
+  ];
+
+  const pre223regex: RegExp = new RegExp('jdk(?<version>(?<major>[0-8]+)(u(?<update>[0-9]+))?(-b(?<build>[0-9]+))(_(?<opt>[-a-zA-Z0-9\\.]+))?)');
+
+  function parse223VersionString(versionNumber: string) {
+
     let index = 0;
 
-    while (matched == null && index < version223Regexs.length) {
-      matched = versionNumber.match(version223Regexs[index]);
+    while (index < version223Regexs.length) {
+      let matched = versionNumber.match(version223Regexs[index]);
+      if (matched != null && matched.groups !== undefined) {
+        return {
+          major: toInt(matched.groups.major),
+          minor: or0(matched.groups.minor),
+          security: or0(matched.groups.security),
+          pre: matched.groups.pre,
+          build: toInt(matched.groups.build),
+          opt: matched.groups.opt,
+          version: matched.groups.version
+        }
+      }
       index++;
     }
-
-    if (matched != null) {
-      return {
-        major: toInt(matched.groups.major),
-        minor: or0(matched.groups.minor),
-        security: or0(matched.groups.security),
-        pre: matched.groups.pre,
-        build: toInt(matched.groups.build),
-        opt: matched.groups.opt,
-        version: matched.groups.version
-      }
-    } else {
-      return null;
-    }
+    return null;
   }
 
-  function parsePre223VersionString(versionNumber) {
+  function parsePre223VersionString(versionNumber: string) {
 
     let matched = versionNumber.match(pre223regex);
 
-    if (matched != null) {
-      matched = versionNumber.match(pre223regex);
-
+    if (matched != null && matched.groups !== undefined) {
       return {
         major: toInt(matched.groups.major),
         minor: 0,
         security: or0(matched.groups.update),
         build: toInt(matched.groups.build),
         opt: matched.groups.opt,
-        version: matched.groups.version
+        version: matched.groups.version,
+        pre: null
       }
     } else {
       return null;
     }
   }
 
-  function parseVersionString(versionNumber) {
-      if(versionNumber.match(/^jdk[1-8]/)) {
-        return parsePre223VersionString(versionNumber)
-      } else {
-        return parse223VersionString(versionNumber)
-      }
+  export function parseVersionString(versionNumber) {
+    if (versionNumber.match(/^jdk[1-8]/)) {
+      return parsePre223VersionString(versionNumber)
+    } else {
+      return parse223VersionString(versionNumber)
+    }
   }
 
-  function formAdoptApiVersionObject(versionNumber) {
+  export function formAdoptApiVersionObject(versionNumber) {
 
     const parsed = parseVersionString(versionNumber);
 
@@ -153,10 +150,12 @@ module.exports = function () {
 
     return removeUndefined(adoptVersion);
   }
+}
 
-  return {
-    formAdoptApiVersionObject: formAdoptApiVersionObject,
-    parseVersionString: parseVersionString
-  };
-};
+
+module.exports = {
+  formAdoptApiVersionObject: Versions.formAdoptApiVersionObject,
+  parseVersionString: Versions.parseVersionString,
+}
+
 
