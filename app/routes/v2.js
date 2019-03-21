@@ -303,7 +303,10 @@ function formBinaryAssetInfo(asset, release) {
     .replace('.zip', '')
     .replace('.tar.gz', '');
 
-  const checksum_link = _.chain(release['assets'])
+  const version = versions.formAdoptApiVersionObject(release.tag_name);
+
+
+  var checksum_link = _.chain(release['assets'])
     .filter(function (asset) {
       return asset.name.endsWith('sha256.txt')
     })
@@ -313,9 +316,11 @@ function formBinaryAssetInfo(asset, release) {
     .map(function (asset) {
       return asset['browser_download_url'];
     })
-    .first();
+    .first()
+    .value();
 
-  const installer_link = _.chain(release['assets'])
+
+  var installer = _.chain(release['assets'])
     .filter(function (asset) {
       // Add installer extensions here
       const extensions = ['msi', 'pkg']
@@ -329,14 +334,11 @@ function formBinaryAssetInfo(asset, release) {
     .filter(function (asset) {
       return asset.name.startsWith(assetName);
     })
-    .map(function (asset) {
-      return asset['browser_download_url'];
-    })
-    .first();
+    .first()
+    .value();
 
-  const version = versions.formAdoptApiVersionObject(release.tag_name);
 
-  return {
+  var assetInfo = {
     os: fileInfo.os.toLowerCase(),
     architecture: fileInfo.arch.toLowerCase(),
     binary_type: fileInfo.binary_type,
@@ -344,14 +346,25 @@ function formBinaryAssetInfo(asset, release) {
     binary_name: asset.name,
     binary_link: asset.browser_download_url,
     binary_size: asset.size,
-    checksum_link: checksum_link,
-    installer_link: installer_link,
     version: fileInfo.version,
     version_data: version,
     heap_size: fileInfo.heap_size,
     download_count: asset.download_count,
     updated_at: asset.updated_at,
+  };
+
+  if (!_.isNull(checksum_link)) {
+    assetInfo.checksum_link = checksum_link;
   }
+
+  if (!_.isNull(installer)) {
+    assetInfo.installer_name = asset.name;
+    assetInfo.installer_link = asset.browser_download_url;
+    assetInfo.installer_size = asset.size;
+    assetInfo.installer_download_count = asset.download_count;
+  }
+
+  return assetInfo
 }
 
 function githubReleaseToAdoptRelease(release) {
